@@ -1,6 +1,6 @@
 # Stock Prices Plugin
 
-![Stock Prices Display](./docs/stocks-display.png)
+![Stock Prices Display](./docs/board-display.png)
 
 Display real-time stock prices and percentage changes.
 
