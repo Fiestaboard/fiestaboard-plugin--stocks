@@ -12,39 +12,158 @@
   "settings_schema": {
     "type": "object",
     "properties": {
-      "enabled": {"type": "boolean", "title": "Enable Stock Prices", "default": false},
-      "finnhub_api_key": {"type": "string", "title": "Finnhub API Key (Optional)", "description": "Enables better symbol search. Get free key at finnhub.io", "ui:widget": "password"},
-      "symbols": {"type": "array", "title": "Stock Symbols", "description": "Stock symbols to track (max 5)", "maxItems": 5, "items": {"type": "string"}, "ui:widget": "stock-symbol-picker"},
-      "time_window": {"type": "string", "title": "Time Window", "description": "Period for calculating price change", "enum": ["1 Day", "5 Days", "1 Month", "3 Months", "6 Months", "1 Year", "2 Years", "5 Years", "ALL"], "default": "1 Day"},
-      "refresh_seconds": {"type": "integer", "title": "Refresh Interval (seconds)", "default": 300, "minimum": 60}
+      "enabled": {
+        "type": "boolean",
+        "title": "Enable Stock Prices",
+        "default": false
+      },
+      "finnhub_api_key": {
+        "type": "string",
+        "title": "Finnhub API Key (Optional)",
+        "description": "Enables better symbol search. Get free key at finnhub.io",
+        "ui:widget": "password"
+      },
+      "symbols": {
+        "type": "array",
+        "title": "Stock Symbols",
+        "description": "Stock symbols to track (max 5)",
+        "maxItems": 5,
+        "items": {
+          "type": "string"
+        },
+        "ui:widget": "stock-symbol-picker"
+      },
+      "time_window": {
+        "type": "string",
+        "title": "Time Window",
+        "description": "Period for calculating price change",
+        "enum": [
+          "1 Day",
+          "5 Days",
+          "1 Month",
+          "3 Months",
+          "6 Months",
+          "1 Year",
+          "2 Years",
+          "5 Years",
+          "ALL"
+        ],
+        "default": "1 Day"
+      },
+      "refresh_seconds": {
+        "type": "integer",
+        "title": "Refresh Interval (seconds)",
+        "default": 300,
+        "minimum": 60
+      }
     },
-    "required": ["symbols"]
+    "required": [
+      "symbols"
+    ]
   },
   "env_vars": [
-    {"name": "STOCKS_ENABLED", "required": false, "description": "Enable stocks feature", "default": "false"},
-    {"name": "FINNHUB_API_KEY", "required": false, "description": "Optional Finnhub API key for symbol search"},
-    {"name": "STOCKS_SYMBOLS", "required": false, "description": "Comma-separated list of stock symbols"},
-    {"name": "STOCKS_TIME_WINDOW", "required": false, "description": "Time window for price change calculation", "default": "1 Day"}
+    {
+      "name": "STOCKS_ENABLED",
+      "required": false,
+      "description": "Enable stocks feature",
+      "default": "false"
+    },
+    {
+      "name": "FINNHUB_API_KEY",
+      "required": false,
+      "description": "Optional Finnhub API key for symbol search"
+    },
+    {
+      "name": "STOCKS_SYMBOLS",
+      "required": false,
+      "description": "Comma-separated list of stock symbols"
+    },
+    {
+      "name": "STOCKS_TIME_WINDOW",
+      "required": false,
+      "description": "Time window for price change calculation",
+      "default": "1 Day"
+    }
   ],
   "variables": {
     "groups": {
-      "market": {"label": "Market Data"},
-      "display": {"label": "Display"}
+      "market": {
+        "label": "Market Data"
+      },
+      "display": {
+        "label": "Display"
+      }
     },
     "simple": {
-      "symbol": {"description": "First stock ticker symbol", "type": "string", "max_length": 5, "group": "market", "example": "AAPL"},
-      "current_price": {"description": "Current stock price", "type": "number", "max_length": 8, "group": "market", "example": "178.50"},
-      "previous_price": {"description": "Previous period closing price", "type": "number", "max_length": 8, "group": "market", "example": "175.20"},
-      "change_percent": {"description": "Price change as percentage", "type": "number", "max_length": 6, "group": "market", "example": "+1.88"},
-      "change_direction": {"description": "Color code for price direction", "type": "string", "max_length": 4, "group": "market", "example": "{63}"},
-      "formatted": {"description": "Pre-formatted stock price display", "type": "string", "max_length": 22, "group": "display", "example": "AAPL $178.50 +1.88%"},
-      "company_name": {"description": "Company name for the symbol", "type": "string", "max_length": 20, "group": "market", "example": "Apple Inc."},
-      "symbol_count": {"description": "Number of tracked symbols", "type": "number", "max_length": 1, "group": "display", "example": "3"}
+      "symbol": {
+        "description": "First stock ticker symbol",
+        "type": "string",
+        "max_length": 5,
+        "group": "market",
+        "example": "AAPL"
+      },
+      "current_price": {
+        "description": "Current stock price",
+        "type": "number",
+        "max_length": 8,
+        "group": "market",
+        "example": "178.50"
+      },
+      "previous_price": {
+        "description": "Previous period closing price",
+        "type": "number",
+        "max_length": 8,
+        "group": "market",
+        "example": "175.20"
+      },
+      "change_percent": {
+        "description": "Price change as percentage",
+        "type": "number",
+        "max_length": 6,
+        "group": "market",
+        "example": "+1.88"
+      },
+      "change_direction": {
+        "description": "Color code for price direction",
+        "type": "string",
+        "max_length": 4,
+        "group": "market",
+        "example": "{63}"
+      },
+      "formatted": {
+        "description": "Pre-formatted stock price display",
+        "type": "string",
+        "max_length": 22,
+        "group": "display",
+        "example": "AAPL $178.50 +1.88%"
+      },
+      "company_name": {
+        "description": "Company name for the symbol",
+        "type": "string",
+        "max_length": 20,
+        "group": "market",
+        "example": "Apple Inc."
+      },
+      "symbol_count": {
+        "description": "Number of tracked symbols",
+        "type": "number",
+        "max_length": 1,
+        "group": "display",
+        "example": "3"
+      }
     },
     "arrays": {
       "stocks": {
         "label_field": "symbol",
-        "item_fields": ["symbol", "current_price", "previous_price", "change_percent", "change_direction", "formatted", "company_name"]
+        "item_fields": [
+          "symbol",
+          "current_price",
+          "previous_price",
+          "change_percent",
+          "change_direction",
+          "formatted",
+          "company_name"
+        ]
       }
     }
   },
@@ -59,11 +178,31 @@
       "type": "threshold",
       "description": "Color based on price change percentage",
       "default_rules": [
-        {"condition": ">", "value": 0, "color": "green"},
-        {"condition": "<", "value": 0, "color": "red"},
-        {"condition": "==", "value": 0, "color": "white"}
+        {
+          "condition": ">",
+          "value": 0,
+          "color": "green"
+        },
+        {
+          "condition": "<",
+          "value": 0,
+          "color": "red"
+        },
+        {
+          "condition": "==",
+          "value": 0,
+          "color": "white"
+        }
       ]
     }
   },
-  "fiestaboard_version": ">=2.10.0"
+  "fiestaboard_version": ">=2.10.0",
+  "screenshots": [
+    {
+      "src": "docs/board-display.png",
+      "alt": "Stock Prices displayed on a Vestaboard",
+      "caption": "Display real-time stock prices and percentage changes from Yahoo Finance",
+      "primary": true
+    }
+  ]
 }
