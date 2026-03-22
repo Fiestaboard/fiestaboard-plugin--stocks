@@ -153,7 +153,7 @@ Access specific stocks using index (0-4):
 
 ## Example Templates
 
-![Stock Prices Display](./stocks-display.png)
+![Stock Prices Display](./board-display.png)
 
 ### Simple List
 
