@@ -1,6 +1,8 @@
 """Unit tests for Stocks data source and plugin."""
 
+import json
 import pytest
+from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 from src.utils.stocks import StocksSource, TIME_WINDOW_MAP, POPULAR_STOCKS
 
@@ -782,4 +784,79 @@ class TestStocksSource:
         """Test that search falls back to curated list if Finnhub fails - skipped."""
         # Note: Finnhub fallback is tested via integration tests
         pass
+
+
+class TestManifestMetadata:
+    """Tests for rich variable metadata in manifest.json."""
+
+    @pytest.fixture(autouse=True)
+    def load_manifest(self):
+        manifest_path = Path(__file__).resolve().parent.parent / "manifest.json"
+        with open(manifest_path) as f:
+            self.manifest = json.load(f)
+
+    def test_required_top_level_fields(self):
+        for field in ("id", "name", "version", "variables"):
+            assert field in self.manifest, f"Missing required field: {field}"
+
+    def test_simple_variables_are_dicts(self):
+        simple = self.manifest["variables"]["simple"]
+        assert isinstance(simple, dict), "simple variables must be a dict, not a list"
+        for var_name, meta in simple.items():
+            assert isinstance(meta, dict), f"{var_name} metadata must be a dict"
+
+    def test_each_simple_variable_has_metadata(self):
+        required_keys = {"description", "type", "max_length", "group", "example"}
+        simple = self.manifest["variables"]["simple"]
+        for var_name, meta in simple.items():
+            missing = required_keys - set(meta.keys())
+            assert not missing, f"{var_name} missing metadata keys: {missing}"
+
+    def test_variable_groups_defined(self):
+        groups = self.manifest["variables"]["groups"]
+        assert isinstance(groups, dict)
+        assert len(groups) > 0
+        for group_id, group_meta in groups.items():
+            assert "label" in group_meta, f"Group {group_id} missing label"
+
+    def test_simple_variable_groups_reference_valid_groups(self):
+        groups = set(self.manifest["variables"]["groups"].keys())
+        simple = self.manifest["variables"]["simple"]
+        for var_name, meta in simple.items():
+            assert meta["group"] in groups, (
+                f"{var_name} references unknown group '{meta['group']}'"
+            )
+
+    def test_arrays_section_preserved(self):
+        arrays = self.manifest["variables"]["arrays"]
+        assert "stocks" in arrays
+        assert "label_field" in arrays["stocks"]
+        assert "item_fields" in arrays["stocks"]
+        assert len(arrays["stocks"]["item_fields"]) > 0
+
+    def test_array_max_lengths_at_top_level(self):
+        max_lengths = self.manifest["max_lengths"]
+        array_keys = [k for k in max_lengths if k.startswith("stocks.")]
+        assert len(array_keys) > 0, "Array max_lengths must remain at top level"
+
+    def test_simple_max_lengths_moved_to_per_variable(self):
+        max_lengths = self.manifest.get("max_lengths", {})
+        simple_vars = self.manifest["variables"]["simple"]
+        for var_name in simple_vars:
+            assert var_name not in max_lengths, (
+                f"Simple var '{var_name}' max_length should be in per-variable metadata, not top-level max_lengths"
+            )
+
+    def test_max_length_values_are_positive_integers(self):
+        simple = self.manifest["variables"]["simple"]
+        for var_name, meta in simple.items():
+            ml = meta["max_length"]
+            assert isinstance(ml, int) and ml > 0, (
+                f"{var_name} max_length must be a positive integer, got {ml}"
+            )
+
+    def test_example_values_present_and_nonempty(self):
+        simple = self.manifest["variables"]["simple"]
+        for var_name, meta in simple.items():
+            assert meta["example"], f"{var_name} example must be non-empty"
 
