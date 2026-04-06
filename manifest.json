@@ -1,7 +1,7 @@
 {
   "id": "stocks",
   "name": "Stock Prices",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Display real-time stock prices and percentage changes from Yahoo Finance",
   "author": "FiestaBoard Team",
   "repository": "https://github.com/Fiestaboard/fiestaboard-plugin--stocks",
@@ -204,5 +204,43 @@
       "caption": "Display real-time stock prices and percentage changes from Yahoo Finance",
       "primary": true
     }
-  ]
+  ],
+  "demo": {
+    "name": "Stock Prices Demo",
+    "device_type": "flagship",
+    "template": [
+      "Stock Prices",
+      "{{stocks.stocks.0.formatted}}",
+      "{{stocks.stocks.1.formatted}}",
+      "{{stocks.stocks.2.formatted}}",
+      "{{stocks.stocks.3.formatted}}",
+      "{{stocks.stocks.4.formatted}}"
+    ],
+    "line_metadata": [
+      {
+        "alignment": "center",
+        "wrap": false
+      },
+      {
+        "alignment": "left",
+        "wrap": false
+      },
+      {
+        "alignment": "left",
+        "wrap": false
+      },
+      {
+        "alignment": "left",
+        "wrap": false
+      },
+      {
+        "alignment": "left",
+        "wrap": false
+      },
+      {
+        "alignment": "left",
+        "wrap": false
+      }
+    ]
+  }
 }
