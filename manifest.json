@@ -205,6 +205,28 @@
       "primary": true
     }
   ],
+  "teaser": "{66}AAPL +1.88%",
+  "previews": [
+    {
+      "device_type": "flagship",
+      "rows": [
+        "{green}AAPL    189.84  +1.2%{/green}",
+        "{red}TSLA    248.50  -0.8%{/red}",
+        "{green}GOOGL   176.32  +0.5%{/green}",
+        "{green}MSFT    415.20  +0.3%{/green}",
+        "{red}AMZN    178.90  -0.2%{/red}",
+        "{green}NVDA    875.40  +2.1%{/green}"
+      ]
+    },
+    {
+      "device_type": "note",
+      "rows": [
+        "STOCK PRICES",
+        "{66}AAPL +1.88%",
+        "{63}TSLA -0.42%"
+      ]
+    }
+  ],
   "demo": {
     "flagship": {
       "name": "Stock Prices Demo",
