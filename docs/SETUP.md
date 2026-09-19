@@ -471,25 +471,6 @@ if stocks.stocks.0.change_percent > 2:
     message += "🚀"
 ```
 
-## API Reference
-
-### REST API Endpoints
-
-```bash
-# Search for stock symbols
-GET /stocks/search?query=Apple&limit=10
-
-# Validate a symbol
-POST /stocks/validate
-Body: {"symbol": "AAPL"}
-
-# Get formatted stock display
-GET /displays/stocks
-
-# Get raw stock data
-GET /displays/stocks/raw
-```
-
 ## Related Features
 
 - **Weather**: Complete morning dashboard with stocks + weather
