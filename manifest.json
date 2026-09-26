@@ -1,7 +1,7 @@
 {
   "id": "stocks",
   "name": "Stock Prices",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "Display real-time stock prices and percentage changes from Yahoo Finance",
   "author": "FiestaBoard Team",
   "repository": "https://github.com/Fiestaboard/fiestaboard-plugin--stocks",
@@ -133,7 +133,7 @@
       "formatted": {
         "description": "Pre-formatted stock price display",
         "type": "string",
-        "max_length": 22,
+        "max_length": 24,
         "group": "display",
         "example": "AAPL $178.50 +1.88%"
       },
@@ -171,7 +171,7 @@
     "stocks.*.symbol": 5,
     "stocks.*.current_price": 8,
     "stocks.*.change_percent": 6,
-    "stocks.*.formatted": 22
+    "stocks.*.formatted": 24
   },
   "color_rules_schema": {
     "change_percent": {
@@ -224,6 +224,20 @@
         "STOCK PRICES",
         "{66}AAPL +1.88%",
         "{63}TSLA -0.42%"
+      ]
+    },
+    {
+      "label": "Note Array (2x2)",
+      "device_type": "note_array",
+      "notes_wide": 2,
+      "notes_tall": 2,
+      "rows": [
+        "            STOCKS            ",
+        "{green}AAPL      $189.84   +1.2%{/green}",
+        "{red}TSLA      $248.50   -0.8%{/red}",
+        "{green}GOOGL     $176.32   +0.5%{/green}",
+        "{green}MSFT      $415.20   +0.3%{/green}",
+        "{red}AMZN      $178.90   -0.2%{/red}"
       ]
     }
   ],
