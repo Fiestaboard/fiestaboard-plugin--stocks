@@ -5,6 +5,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 from src.utils.stocks import StocksSource, TIME_WINDOW_MAP, POPULAR_STOCKS
+from src.text_to_board import count_tiles
 
 from plugins.stocks import StocksPlugin, Plugin, TIME_WINDOW_MAP as PLUGIN_TIME_WINDOW_MAP
 
@@ -333,38 +334,93 @@ class TestStocksPlugin:
         plugin = StocksPlugin(manifest={})
         plugin._cache = {
             "stocks": [
-                {"formatted": "AAPL{66} $150.00 +1.00%", "symbol": "AAPL"},
+                {
+                    "symbol": "AAPL",
+                    "current_price": 150.00,
+                    "change_percent": 1.00,
+                    "color_tile": "{66}",
+                    "company_name": "Apple Inc.",
+                },
             ]
         }
         lines = plugin.get_formatted_display()
-        assert "AAPL" in lines[2]
         assert "STOCKS" in lines[0]
+        # No board is bound in this call, so it falls back to the Flagship
+        # default: one header row, then stock rows -- no blank separator.
+        assert "AAPL" in lines[1]
 
-    def test_get_formatted_display_truncates_to_22_chars(self):
-        """Test get_formatted_display truncates stock lines to 22 chars."""
+    def test_get_formatted_display_row_never_exceeds_board_width(self):
+        """A stock row must fit the board's column budget in tiles, even with an oversized price/percent.
+
+        The old implementation sliced the pre-baked ``formatted`` string with
+        ``[:22]`` -- character slicing, not tile-aware -- which could still
+        overflow (or cut a colour marker in half) on a value like this one.
+        """
         plugin = StocksPlugin(manifest={})
         plugin._cache = {
             "stocks": [
-                {"formatted": "AAPL{66} $12345.67 +123.45%", "symbol": "AAPL"},
+                {
+                    "symbol": "AAPL",
+                    "current_price": 12345.67,
+                    "change_percent": 123.45,
+                    "color_tile": "{66}",
+                    "company_name": "Apple Inc.",
+                },
             ]
         }
         lines = plugin.get_formatted_display()
-        assert len(lines[2]) == 22
+        assert count_tiles(lines[1]) <= 22
 
-    def test_get_formatted_display_max_4_stocks(self):
-        """Test get_formatted_display shows max 4 stocks."""
+    def test_get_formatted_display_hard_truncates_when_even_the_compact_form_overflows(self):
+        """Even the most compact row format must be cut, tile-safely, if it still overflows.
+
+        A price large enough that ``symbol[:4] + price + percent`` alone
+        exceeds the Note's 15-column budget exercises the ``take_tiles``
+        hard-truncation fallback in ``_format_row`` -- the row must still
+        stay within bounds.
+        """
+        from src.devices import BoardContext
+
         plugin = StocksPlugin(manifest={})
         plugin._cache = {
             "stocks": [
-                {"formatted": "A{66} $1.00 +0%", "symbol": "A"},
-                {"formatted": "B{66} $2.00 +0%", "symbol": "B"},
-                {"formatted": "C{66} $3.00 +0%", "symbol": "C"},
-                {"formatted": "D{66} $4.00 +0%", "symbol": "D"},
-                {"formatted": "E{66} $5.00 +0%", "symbol": "E"},
+                {
+                    "symbol": "REALLYLONGTICKER",
+                    "current_price": 123456789.0,
+                    "change_percent": 0.0,
+                    "color_tile": "{66}",
+                    "company_name": "",
+                },
+            ]
+        }
+        with plugin._bound_board(BoardContext(device_type="note", rows=3, cols=15)):
+            lines = plugin.get_formatted_display()
+        assert count_tiles(lines[1]) <= 15
+
+    def test_get_formatted_display_shows_up_to_five_stocks(self):
+        """Flagship (6 rows) shows a header plus all 5 configured stocks.
+
+        The previous implementation capped the loop at ``stocks[:4]``, always
+        leaving one of the Flagship's 6 rows blank even though up to 5
+        symbols can be configured.
+        """
+        plugin = StocksPlugin(manifest={})
+        plugin._cache = {
+            "stocks": [
+                {
+                    "symbol": symbol,
+                    "current_price": 1.0,
+                    "change_percent": 0.0,
+                    "color_tile": "{66}",
+                    "company_name": "",
+                }
+                for symbol in ["A", "B", "C", "D", "E"]
             ]
         }
         lines = plugin.get_formatted_display()
-        assert len([l for l in lines if l and l != "STOCKS" and not l.isspace()]) == 5  # STOCKS + blank + 4 stocks
+        assert len(lines) == 6
+        non_blank = [line for line in lines if line.strip()]
+        assert len(non_blank) == 6  # header + all 5 stocks, using the full row budget
 
     def test_get_formatted_display_fetch_fails_returns_none(self):
         """Test get_formatted_display returns None when fetch fails."""
@@ -374,10 +430,15 @@ class TestStocksPlugin:
         lines = plugin.get_formatted_display()
         assert lines is None
 
-    def test_get_formatted_display_empty_cache_data_returns_none(self):
-        """Test get_formatted_display returns None when cache has empty/falsy data."""
+    def test_get_formatted_display_empty_cache_returns_none(self):
+        """Test get_formatted_display returns None when cache is an empty (falsy) dict.
+
+        ``{}`` is falsy just like ``None``, so this takes the same
+        not-yet-fetched branch as test_get_formatted_display_fetch_fails_returns_none.
+        """
         plugin = StocksPlugin(manifest={})
-        plugin._cache = {}  # Empty dict is falsy, triggers early return
+        plugin._cache = {}
+        plugin.config = {"symbols": []}
         lines = plugin.get_formatted_display()
         assert lines is None
 
