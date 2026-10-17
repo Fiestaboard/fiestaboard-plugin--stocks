@@ -6,8 +6,17 @@ Displays real-time stock prices using Yahoo Finance.
 from typing import Any, Dict, List, Optional
 import logging
 
+import requests
+
 from src.devices import BoardContext
-from src.plugins.base import PluginBase, PluginResult
+from src.plugins.base import (
+    Option,
+    OptionsRequest,
+    OptionsResult,
+    OptionsUnavailable,
+    PluginBase,
+    PluginResult,
+)
 from src.text_to_board import count_tiles, take_tiles
 
 logger = logging.getLogger(__name__)
@@ -36,6 +45,28 @@ _DEFAULT_BOARD = BoardContext(device_type="flagship", rows=6, cols=22)
 # a 1-row board (never actually issued -- the narrowest is a 3-row Note) would
 # have nothing left for content, so the header is skipped there instead.
 _HEADER_TEXT = "STOCKS"
+
+# Symbol search for the settings picker (remote-options). Finnhub is used when
+# the user supplied a key; Yahoo's public search endpoint is the keyless default.
+OPTIONS_TIMEOUT_SECONDS = 10
+FINNHUB_SEARCH_URL = "https://finnhub.io/api/v1/search"
+YAHOO_SEARCH_URL = "https://query2.finance.yahoo.com/v1/finance/search"
+_YAHOO_HEADERS = {"User-Agent": "Mozilla/5.0 (FiestaBoard stocks plugin)"}
+
+
+def _json_list(response: "requests.Response", key: str) -> List[Dict[str, Any]]:
+    """Return ``response.json()[key]`` as a list of dicts.
+
+    Raises ValueError for a payload of the wrong shape so the caller reports
+    it as OptionsUnavailable instead of crashing on ``.get``.
+    """
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise ValueError(f"unexpected symbol search payload: {type(payload).__name__}")
+    items = payload.get(key) or []
+    if not isinstance(items, list):
+        raise ValueError(f"unexpected symbol search payload: {key} is {type(items).__name__}")
+    return [item for item in items if isinstance(item, dict)]
 
 
 class StocksPlugin(PluginBase):
@@ -68,6 +99,96 @@ class StocksPlugin(PluginBase):
             errors.append(f"Invalid time window: {time_window}")
 
         return errors
+
+    # ------------------------------------------------------------------
+    # Settings picker (remote-options)
+    # ------------------------------------------------------------------
+
+    def get_options(self, request: OptionsRequest) -> OptionsResult:
+        """Search ticker symbols so the user can pick them by company name."""
+        if request.options_id != "symbols":
+            # Defer to the base class, which still serves shared catalogs
+            # (e.g. ``ai_providers``) and raises NotImplementedError otherwise.
+            return super().get_options(request)
+
+        query = (request.query or "").strip()
+        if not query:
+            # Nothing typed yet: no catalog to browse, the user must search.
+            return OptionsResult(options=[], total=0)
+
+        api_key = str(self.config.get("finnhub_api_key") or "").strip()
+        try:
+            if api_key:
+                options = self._search_finnhub(query, api_key)
+            else:
+                options = self._search_yahoo(query)
+        except (requests.RequestException, ValueError) as e:
+            logger.warning("Stock symbol search failed: %s", e)
+            raise OptionsUnavailable("Symbol search is unavailable right now. You can still type a symbol.")
+
+        # Drop duplicate symbols, keeping the first (best-ranked) match.
+        seen = set()
+        unique: List[Option] = []
+        for option in options:
+            if option.value in seen:
+                continue
+            seen.add(option.value)
+            unique.append(option)
+
+        limit = request.limit if request.limit and request.limit > 0 else len(unique)
+        page = unique[:limit]
+        return OptionsResult(options=page, has_more=len(unique) > len(page), total=len(unique))
+
+    @staticmethod
+    def _search_finnhub(query: str, api_key: str) -> List[Option]:
+        response = requests.get(
+            FINNHUB_SEARCH_URL,
+            params={"q": query, "token": api_key},
+            timeout=OPTIONS_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        options = []
+        for item in _json_list(response, "result"):
+            symbol = str(item.get("symbol") or "").strip().upper()
+            if not symbol:
+                continue
+            name = str(item.get("description") or "").strip()
+            options.append(
+                Option(
+                    value=symbol,
+                    label=symbol,
+                    description=name or None,
+                    group=item.get("type") or None,
+                )
+            )
+        return options
+
+    @staticmethod
+    def _search_yahoo(query: str) -> List[Option]:
+        response = requests.get(
+            YAHOO_SEARCH_URL,
+            params={"q": query, "quotesCount": 20, "newsCount": 0},
+            headers=_YAHOO_HEADERS,
+            timeout=OPTIONS_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        options = []
+        for item in _json_list(response, "quotes"):
+            symbol = str(item.get("symbol") or "").strip().upper()
+            if not symbol:
+                continue
+            name = str(item.get("shortname") or item.get("longname") or "").strip()
+            exchange = str(item.get("exchDisp") or item.get("exchange") or "").strip()
+            description = " · ".join(part for part in (name, exchange) if part)
+            options.append(
+                Option(
+                    value=symbol,
+                    label=symbol,
+                    description=description or None,
+                    group=item.get("typeDisp") or item.get("quoteType") or None,
+                )
+            )
+        return options
 
     def fetch_data(self) -> PluginResult:
         """Fetch stock data for all configured symbols."""
