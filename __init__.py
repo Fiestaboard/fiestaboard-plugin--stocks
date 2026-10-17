@@ -54,6 +54,21 @@ YAHOO_SEARCH_URL = "https://query2.finance.yahoo.com/v1/finance/search"
 _YAHOO_HEADERS = {"User-Agent": "Mozilla/5.0 (FiestaBoard stocks plugin)"}
 
 
+def _json_list(response: "requests.Response", key: str) -> List[Dict[str, Any]]:
+    """Return ``response.json()[key]`` as a list of dicts.
+
+    Raises ValueError for a payload of the wrong shape so the caller reports
+    it as OptionsUnavailable instead of crashing on ``.get``.
+    """
+    payload = response.json()
+    if not isinstance(payload, dict):
+        raise ValueError(f"unexpected symbol search payload: {type(payload).__name__}")
+    items = payload.get(key) or []
+    if not isinstance(items, list):
+        raise ValueError(f"unexpected symbol search payload: {key} is {type(items).__name__}")
+    return [item for item in items if isinstance(item, dict)]
+
+
 class StocksPlugin(PluginBase):
     """Stock prices plugin.
 
@@ -92,7 +107,9 @@ class StocksPlugin(PluginBase):
     def get_options(self, request: OptionsRequest) -> OptionsResult:
         """Search ticker symbols so the user can pick them by company name."""
         if request.options_id != "symbols":
-            raise NotImplementedError(request.options_id)
+            # Defer to the base class, which still serves shared catalogs
+            # (e.g. ``ai_providers``) and raises NotImplementedError otherwise.
+            return super().get_options(request)
 
         query = (request.query or "").strip()
         if not query:
@@ -131,7 +148,7 @@ class StocksPlugin(PluginBase):
         )
         response.raise_for_status()
         options = []
-        for item in response.json().get("result") or []:
+        for item in _json_list(response, "result"):
             symbol = str(item.get("symbol") or "").strip().upper()
             if not symbol:
                 continue
@@ -156,7 +173,7 @@ class StocksPlugin(PluginBase):
         )
         response.raise_for_status()
         options = []
-        for item in response.json().get("quotes") or []:
+        for item in _json_list(response, "quotes"):
             symbol = str(item.get("symbol") or "").strip().upper()
             if not symbol:
                 continue

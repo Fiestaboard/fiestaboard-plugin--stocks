@@ -93,3 +93,16 @@ def test_network_failure_raises_options_unavailable():
     with patch("plugins.stocks.requests.get", side_effect=requests.ConnectionError("down")):
         with pytest.raises(OptionsUnavailable):
             _plugin().get_options(OptionsRequest(options_id="symbols", query="x"))
+
+
+def test_ai_providers_options_id_falls_through_to_base():
+    with patch("src.plugins.base.PluginBase.get_options", return_value=["sentinel"]) as base:
+        result = _plugin().get_options(OptionsRequest(options_id="ai_providers"))
+    base.assert_called_once()
+    assert result == ["sentinel"]
+
+
+def test_malformed_payload_raises_options_unavailable():
+    with patch("plugins.stocks.requests.get", return_value=_response(["not", "a", "dict"])):
+        with pytest.raises(OptionsUnavailable):
+            _plugin().get_options(OptionsRequest(options_id="symbols", query="x"))
