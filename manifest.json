@@ -1,7 +1,7 @@
 {
   "id": "stocks",
   "name": "Stock Prices",
-  "version": "1.1.3",
+  "version": "1.2.0",
   "description": "Display real-time stock prices and percentage changes from Yahoo Finance",
   "author": "FiestaBoard Team",
   "repository": "https://github.com/Fiestaboard/fiestaboard-plugin--stocks",
@@ -31,7 +31,17 @@
         "items": {
           "type": "string"
         },
-        "ui:widget": "stock-symbol-picker"
+        "ui:widget": "remote-options",
+        "ui:options": {
+          "options_id": "symbols",
+          "multiple": true,
+          "reorderable": true,
+          "searchable": true,
+          "server_search": true,
+          "allow_custom": true,
+          "cache_seconds": 300,
+          "placeholder": "Search by symbol or company name"
+        }
       },
       "time_window": {
         "type": "string",
